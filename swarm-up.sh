@@ -12,6 +12,12 @@
 #  limitations under the License.
 
 # get cluster info from options.yaml
+
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    echo "Please set GOOGLE_APPLICATION_CREDENTIALS to the JSON file with your credentials"
+    exit -1
+fi
+
 PREFIX=$(awk '{for(i=1;i<=NF;i++) if ($i=="prefix:") print $(i+1)}' options.yaml)
 ZONE=$(awk '{for(i=1;i<=NF;i++) if ($i=="zone:") print $(i+1)}' options.yaml)
 PROJECT_ID=$(gcloud config list project | awk 'FNR ==2 { print $3 }')
@@ -40,5 +46,20 @@ docker-machine create $PREFIX-manager -d google \
   --google-project $PROJECT_ID \
   --google-use-existing
 
+echo "Creating firewall rules..."
+gcloud compute firewall-rules create docker-swarm   --allow tcp:2377
+gcloud compute firewall-rules create http-swarm   --allow tcp:80
+gcloud compute firewall-rules create https-swarm   --allow tcp:443
+gcloud compute firewall-rules create traefik-swarm   --allow tcp:8080
+
 echo "Swarm Created!"
 echo "eval $(docker-machine env $PREFIX-manager)"
+
+echo "Setting task hostory limit to 1"
+eval $(docker-machine env $PREFIX-manager)
+docker swarm update --task-history-limit 2
+
+for node in `docker node ls --filter role=worker  --format '{{.ID}}'` ; do
+   docker node update $node --label-add usgm.tasks=true --label-add usgm.web=true
+   # db label set manually
+done

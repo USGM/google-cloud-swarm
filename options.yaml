@@ -16,19 +16,19 @@ imports:
 - path: templates/manager.jinja
 - path: templates/worker.jinja
 resources:
-- name: swarm-cluster
+- name: cluster
   type: templates/deployment.jinja
   properties:
 
     #Cluster Config
-    prefix: my-swarm
+    prefix: usgm-swarm
     zone: us-central1-f
 
     #Manager Config
     manager_machine_type: n1-standard-1
-    manager_disk: 100
+    manager_disk: 50
 
     #Worker Config
     num: 2
-    worker_machine_type: n1-standard-1
+    worker_machine_type: n1-standard-2
     worker_disk: 100
