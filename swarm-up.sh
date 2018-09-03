@@ -40,7 +40,7 @@ echo $STATUS
 
 echo "Adding Manager to docker-machine"
 
-docker-machine rm -f $PREFIX-manager
+#docker-machine rm -f $PREFIX-manager
 docker-machine create $PREFIX-manager -d google \
   --google-zone $ZONE \
   --google-project $PROJECT_ID \

@@ -57,6 +57,7 @@ resources:
           value: sudo docker swarm leave
         - key: startup-script
           value: |
+            set -x
             sleep 15
             MANAGER_IP=$(curl -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/instance/attributes/manager-ip)
             PREFIX={{ properties["prefix"] }}
@@ -71,7 +72,7 @@ resources:
              sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
             $(lsb_release -cs) \
             stable"            
-            sudo apt-get update && sudo apt-get -y install linux-image-extra-$(uname -r) && sudo apt-get -y install docker-ce
+            sudo apt-get update && sudo apt-get -y install linux-image-extra-virtual && sudo apt-get -y install docker-ce aufs-tools
             sudo systemctl start docker
             SWARM_TOKEN=$(curl -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/project/attributes/"$PREFIX"-swarm-worker-token)
             sudo docker swarm join --token $SWARM_TOKEN $MANAGER_IP:2377
