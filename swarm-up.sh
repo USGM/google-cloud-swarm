@@ -55,11 +55,15 @@ gcloud compute firewall-rules create traefik-swarm   --allow tcp:8080
 echo "Swarm Created!"
 echo "eval $(docker-machine env $PREFIX-manager)"
 
-echo "Setting task hostory limit to 1"
+echo "Setting task history limit to 1"
 eval $(docker-machine env $PREFIX-manager)
 docker swarm update --task-history-limit 2
 
 for node in `docker node ls --filter role=worker  --format '{{.ID}}'` ; do
-   docker node update $node --label-add usgm.tasks=true --label-add usgm.web=true
-   # db label set manually
+    docker node update $node --label-add usgm.tasks=true --label-add usgm.web=true
+    if [ -z "$dbset" ] ; then 
+        docker node update $node --label-add usgm.db=true
+        dbset=1
+    fi
 done
+
