@@ -28,4 +28,6 @@ echo "Deleting Manager from docker-machine"
 
 docker-machine rm -f $PREFIX-manager
 
+echo "Deleteing firewall rules"
+
 echo "Cluster Deleted"

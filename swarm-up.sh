@@ -21,6 +21,8 @@ fi
 PREFIX=$(awk '{for(i=1;i<=NF;i++) if ($i=="prefix:") print $(i+1)}' options.yaml)
 ZONE=$(awk '{for(i=1;i<=NF;i++) if ($i=="zone:") print $(i+1)}' options.yaml)
 PROJECT_ID=$(gcloud config list project | awk 'FNR ==2 { print $3 }')
+NWORKERS=2
+INSECURE_REGISTRIES=registry.usglobalmail.com:5000
 
 echo "Creating Swarm"
 
@@ -41,16 +43,15 @@ echo $STATUS
 echo "Adding Manager to docker-machine"
 
 #docker-machine rm -f $PREFIX-manager
-docker-machine create $PREFIX-manager -d google \
+docker-machine --debug create $PREFIX-manager -d google \
   --google-zone $ZONE \
   --google-project $PROJECT_ID \
-  --google-use-existing
+  --google-use-existing \
+  --google-open-port 80 \
+  --google-open-port 443 \
+  --engine-insecure-registry $INSECURE_REGISTRIES
 
-echo "Creating firewall rules..."
-gcloud compute firewall-rules create docker-swarm   --allow tcp:2377
-gcloud compute firewall-rules create http-swarm   --allow tcp:80
-gcloud compute firewall-rules create https-swarm   --allow tcp:443
-gcloud compute firewall-rules create traefik-swarm   --allow tcp:8080
+# TODO: custom docker  and SSH ports
 
 echo "Swarm Created!"
 echo "eval $(docker-machine env $PREFIX-manager)"
@@ -59,10 +60,15 @@ echo "Setting task history limit to 1"
 eval $(docker-machine env $PREFIX-manager)
 docker swarm update --task-history-limit 2
 
+while [ "`docker node ls --filter role=worker  --format '{{.ID}}' | wc -l`" -lt $NWORKERS ] ; do
+    echo "Waiting for $NWORKERS workers to start..."
+    sleep 5
+done
+
 for node in `docker node ls --filter role=worker  --format '{{.ID}}'` ; do
     docker node update $node --label-add usgm.tasks=true --label-add usgm.web=true
     if [ -z "$dbset" ] ; then 
-        docker node update $node --label-add usgm.db=true
+        docker node update $node --label-add usgm.db=true --label-add vault.db=true
         dbset=1
     fi
 done

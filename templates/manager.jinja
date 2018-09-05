@@ -50,7 +50,10 @@ resources:
       - key: startup-script
         value: |
           set -x
-          sudo aptitude -y install software-properties-common apt-transport-https curl
+          # broken: no option to instruct docker-machine to use it
+          #echo 'Port {{ properties["ssh_port"] }}' | sudo tee --append /etc/ssh/sshd_config
+          #sudo systemctl restart sshd
+          sudo apt-get -y install software-properties-common apt-transport-https curl
           #sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
           #sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F76221572C52609D
           #sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
@@ -61,8 +64,13 @@ resources:
           sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
             $(lsb_release -cs) \
             stable"
-          sudo apt-get update && sudo apt-get -y install linux-image-extra-virtual && sudo apt-get -y install docker-ce aufs-tools
+          sudo apt-get update && sudo apt-get -y install linux-image-extra-virtual && sudo apt-get -y install \
+            docker-ce aufs-tools fail2ban sendmail
+          # duplicated by `docker-machine create` command options
+          #echo '{"insecure-registries":["registry.usglobalmail.com:5000"]}' | sudo tee /etc/docker/daemon.json
           sudo systemctl start docker
           docker swarm init
           gcloud compute project-info add-metadata --metadata {{ properties['prefix'] }}-swarm-worker-token=$(docker swarm join-token -q worker),{{ properties['prefix'] }}-swarm-manager-token=$(docker swarm join-token -q manager)
           yes y | gcloud compute instances add-metadata $(hostname) --metadata docker-install-status=finished --zone {{ properties["zone"] }}
+          sudo usermod -aG docker ubuntu
+          
